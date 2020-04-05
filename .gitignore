@@ -115,5 +115,3 @@ dist
 .pnp.*
 
 #### p5.websocket ignores
-
-dist/
