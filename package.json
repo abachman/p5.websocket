@@ -1,0 +1,13 @@
+{
+  "name": "p5.websocket",
+  "version": "1.0.0",
+  "description": "A tiny p5.js websocket library.",
+  "main": "index.js",
+  "repository": "https://github.com/abachman/p5.websocket.git",
+  "author": "Adam Bachman",
+  "license": "MIT",
+  "private": false,
+  "devDependencies": {
+    "parcel-bundler": "^1.12.4"
+  }
+}
