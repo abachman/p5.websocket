@@ -14,3 +14,15 @@ Download dist/p5.websocket.min.js and add it to your sketch's index.html:
   <body></body>
 </html>
 ```
+
+### Hacking
+
+Clone this repository and run `yarn install`.
+
+Then run `yarn dev`.
+
+serve `example-dist/` as static
+
+## Other Stuff
+
+Check out [the p5.websocket reference server](https://github.com/abachman/p5-websocket-server/).

@@ -1,12 +1,11 @@
 let x = 0;
 let myColor;
 
-console.log("SKEEEETCH");
-
 function setup() {
   createCanvas(500, 500);
   background(0);
-  connectWebsocket("wss://p5-websocket.glitch.me/streaming");
+  // connect to github.com/abachman/p5-websocket-server locally
+  connectWebsocket("wss://chat.reasonable.systems/sketch");
   noStroke();
   fill(255);
   myColor = color(random(255), 128, random(255));
