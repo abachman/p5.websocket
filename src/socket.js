@@ -1,6 +1,19 @@
 import EventEmitter3 from "eventemitter3";
 
-window.DEBUG = false;
+function tryParse(jsonString) {
+  try {
+    const data = JSON.parse(jsonString);
+    return data;
+  } catch (ex) {
+    if (window.WS_DEBUG) {
+      console.error(
+        "[p5.websocket error] failed to parse data blob as JSON:",
+        data
+      );
+    }
+    return jsonString;
+  }
+}
 
 class WebSocketClient {
   constructor() {
@@ -14,15 +27,15 @@ class WebSocketClient {
     var self = this;
 
     this.instance.onopen = function () {
-      if (window.DEBUG) console.log("[WebSocketClient on open]");
+      if (window.WS_DEBUG) console.log("[WebSocketClient on open]");
       self.onopen();
     };
 
     this.instance.onclose = function (evt) {
-      if (window.DEBUG) console.log("[WebSocketClient on close]");
+      if (window.WS_DEBUG) console.log("[WebSocketClient on close]");
       switch (evt.code) {
         case 1000: // CLOSE_NORMAL
-          if (window.DEBUG) console.log("WebSocketClient: closed");
+          if (window.WS_DEBUG) console.log("WebSocketClient: closed");
           break;
         default:
           // Abnormal closure
@@ -33,7 +46,7 @@ class WebSocketClient {
     };
 
     this.instance.onerror = function (evt) {
-      if (window.DEBUG) console.log("[WebSocketClient on error]");
+      if (window.WS_DEBUG) console.log("[WebSocketClient on error]");
       switch (evt.code) {
         case "ECONNREFUSED":
           self.reconnect(evt);
@@ -45,11 +58,11 @@ class WebSocketClient {
     };
 
     this.instance.onmessage = function (evt) {
-      if (window.DEBUG) console.log("[WebSocketClient on message]");
+      if (window.WS_DEBUG) console.log("[WebSocketClient on message]");
       self.onmessage(evt.data);
     };
 
-    if (window.DEBUG) console.log("[WebSocketClient open] completed");
+    if (window.WS_DEBUG) console.log("[WebSocketClient open] completed");
   }
 
   removeAllListeners() {
@@ -60,7 +73,7 @@ class WebSocketClient {
   }
 
   reconnect() {
-    if (window.DEBUG)
+    if (window.WS_DEBUG)
       console.log(
         "WebSocketClient: retry in",
         this.reconnect_interval,
@@ -71,7 +84,7 @@ class WebSocketClient {
 
     var self = this;
     setTimeout(function () {
-      if (window.DEBUG) console.log("WebSocketClient: reconnecting...");
+      if (window.WS_DEBUG) console.log("WebSocketClient: reconnecting...");
       self.open(self.url);
     }, this.reconnect_interval);
   }
@@ -96,29 +109,39 @@ export const startWebsocket = (url, callback) => {
   }
 
   sock.onopen = function () {
-    console.log("socket connected");
+    if (window.WS_DEBUG) console.log("socket connected");
     socketEvents.on("send", send);
+    socketEvents.emit("onopen");
   };
 
   sock.onclose = function () {
-    console.log("socket closed");
+    if (window.WS_DEBUG) console.log("socket closed");
     socketEvents.removeListener("send", send);
+    socketEvents.emit("onclose");
   };
   sock.onerror = sock.onclose;
 
   function handleDataString(data) {
     var message = JSON.parse(data);
+
     if (callback) {
       callback(message);
     } else {
-      socketEvents.emit("data.*", message);
-      if (message.key) {
-        socketEvents.emit("data." + message.key, {
-          key: message.key,
-          value: message.value,
-          created_at: message.created_at,
-          mode: message.mode ? message.mode : "live",
-        });
+      if (message.type) {
+        switch (message.type) {
+          case "connect":
+            socketEvents.emit("connect", message.id);
+            break;
+          case "disconnect":
+            socketEvents.emit("disconnect", message.id);
+            break;
+          case "data":
+            if (window.WS_DEBUG)
+              console.log("[p5.websocket] receiving data", message);
+            let data = tryParse(message.data);
+            socketEvents.emit("data", data);
+            break;
+        }
       } else {
         socketEvents.emit("data", message);
       }

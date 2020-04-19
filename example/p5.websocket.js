@@ -473,7 +473,19 @@ function _defineProperties(target, props) { for (var i = 0; i < props.length; i+
 
 function _createClass(Constructor, protoProps, staticProps) { if (protoProps) _defineProperties(Constructor.prototype, protoProps); if (staticProps) _defineProperties(Constructor, staticProps); return Constructor; }
 
-window.DEBUG = false;
+function tryParse(jsonString) {
+  try {
+    var _data = JSON.parse(jsonString);
+
+    return _data;
+  } catch (ex) {
+    if (window.WS_DEBUG) {
+      console.error("[p5.websocket error] failed to parse data blob as JSON:", data);
+    }
+
+    return jsonString;
+  }
+}
 
 var WebSocketClient = /*#__PURE__*/function () {
   function WebSocketClient() {
@@ -490,17 +502,17 @@ var WebSocketClient = /*#__PURE__*/function () {
       var self = this;
 
       this.instance.onopen = function () {
-        if (window.DEBUG) console.log("[WebSocketClient on open]");
+        if (window.WS_DEBUG) console.log("[WebSocketClient on open]");
         self.onopen();
       };
 
       this.instance.onclose = function (evt) {
-        if (window.DEBUG) console.log("[WebSocketClient on close]");
+        if (window.WS_DEBUG) console.log("[WebSocketClient on close]");
 
         switch (evt.code) {
           case 1000:
             // CLOSE_NORMAL
-            if (window.DEBUG) console.log("WebSocketClient: closed");
+            if (window.WS_DEBUG) console.log("WebSocketClient: closed");
             break;
 
           default:
@@ -513,7 +525,7 @@ var WebSocketClient = /*#__PURE__*/function () {
       };
 
       this.instance.onerror = function (evt) {
-        if (window.DEBUG) console.log("[WebSocketClient on error]");
+        if (window.WS_DEBUG) console.log("[WebSocketClient on error]");
 
         switch (evt.code) {
           case "ECONNREFUSED":
@@ -527,11 +539,11 @@ var WebSocketClient = /*#__PURE__*/function () {
       };
 
       this.instance.onmessage = function (evt) {
-        if (window.DEBUG) console.log("[WebSocketClient on message]");
+        if (window.WS_DEBUG) console.log("[WebSocketClient on message]");
         self.onmessage(evt.data);
       };
 
-      if (window.DEBUG) console.log("[WebSocketClient open] completed");
+      if (window.WS_DEBUG) console.log("[WebSocketClient open] completed");
     }
   }, {
     key: "removeAllListeners",
@@ -544,11 +556,11 @@ var WebSocketClient = /*#__PURE__*/function () {
   }, {
     key: "reconnect",
     value: function reconnect() {
-      if (window.DEBUG) console.log("WebSocketClient: retry in", this.reconnect_interval, "ms", evt);
+      if (window.WS_DEBUG) console.log("WebSocketClient: retry in", this.reconnect_interval, "ms", evt);
       this.removeAllListeners();
       var self = this;
       setTimeout(function () {
-        if (window.DEBUG) console.log("WebSocketClient: reconnecting...");
+        if (window.WS_DEBUG) console.log("WebSocketClient: reconnecting...");
         self.open(self.url);
       }, this.reconnect_interval);
     }
@@ -576,13 +588,15 @@ var startWebsocket = function startWebsocket(url, callback) {
   }
 
   sock.onopen = function () {
-    console.log("socket connected");
+    if (window.WS_DEBUG) console.log("socket connected");
     socketEvents.on("send", send);
+    socketEvents.emit("onopen");
   };
 
   sock.onclose = function () {
-    console.log("socket closed");
+    if (window.WS_DEBUG) console.log("socket closed");
     socketEvents.removeListener("send", send);
+    socketEvents.emit("onclose");
   };
 
   sock.onerror = sock.onclose;
@@ -593,15 +607,24 @@ var startWebsocket = function startWebsocket(url, callback) {
     if (callback) {
       callback(message);
     } else {
-      socketEvents.emit("data.*", message);
+      if (message.type) {
+        switch (message.type) {
+          case "connect":
+            socketEvents.emit("connect", message.id);
+            break;
 
-      if (message.key) {
-        socketEvents.emit("data." + message.key, {
-          key: message.key,
-          value: message.value,
-          created_at: message.created_at,
-          mode: message.mode ? message.mode : "live"
-        });
+          case "disconnect":
+            socketEvents.emit("disconnect", message.id);
+            break;
+
+          case "data":
+            if (window.WS_DEBUG) console.log("[p5.websocket] receiving data", message);
+
+            var _data2 = tryParse(message.data);
+
+            socketEvents.emit("data", _data2);
+            break;
+        }
       } else {
         socketEvents.emit("data", message);
       }
@@ -631,11 +654,56 @@ exports.startWebsocket = startWebsocket;
 
 var _socket = require("./socket");
 
+window.WS_DEBUG = false;
 var p5 = window.p5;
 var socket = null;
+var defaultOptions = {
+  echo: true,
+  receiver: true,
+  controller: true
+};
+
+var serialize = function serialize(obj) {
+  return Object.keys(obj).map(function (key) {
+    return encodeURIComponent(key) + "=" + encodeURIComponent(obj[key]);
+  }).join("&");
+};
 
 p5.prototype.connectWebsocket = function (url) {
-  socket = (0, _socket.startWebsocket)(url);
+  var options = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
+  var config = Object.assign({}, defaultOptions, options);
+  var fullUrl = url + "?" + serialize(config);
+  socket = (0, _socket.startWebsocket)(fullUrl); // console.log("CONNECTING WEBSOCKET WITH LOCAL THIS", this);
+  // console.log(
+  //   "can see methods from sketch here",
+  //   this.hasOwnProperty("onConnection"),
+  //   this.onConnection,
+  //   window.onConnection
+  // );
+  // this client's connection
+
+  socket.on("onopen", function () {
+    if (window.onConnection) {
+      onConnection();
+    }
+  }); // this client's connection
+
+  socket.on("onclose", function () {
+    if (window.onDisconnection) {
+      onDisconnection();
+    }
+  }); // other clients' connections
+
+  socket.on("connect", function (message) {
+    if (window.connectReceived) {
+      connectReceived(message);
+    }
+  });
+  socket.on("disconnect", function (message) {
+    if (window.disconnectReceived) {
+      disconnectReceived(message);
+    }
+  });
   socket.on("data", function (message) {
     if (window.messageReceived) {
       messageReceived(message);
@@ -645,6 +713,7 @@ p5.prototype.connectWebsocket = function (url) {
 
 p5.prototype.sendMessage = function (message) {
   if (socket) {
+    if (window.WS_DEBUG) console.log("sendin", message);
     socket.emit("send", message);
   }
 };
@@ -676,7 +745,7 @@ var parent = module.bundle.parent;
 if ((!parent || !parent.isParcelRequire) && typeof WebSocket !== 'undefined') {
   var hostname = "" || location.hostname;
   var protocol = location.protocol === 'https:' ? 'wss' : 'ws';
-  var ws = new WebSocket(protocol + '://' + hostname + ':' + "59701" + '/');
+  var ws = new WebSocket(protocol + '://' + hostname + ':' + "58650" + '/');
 
   ws.onmessage = function (event) {
     checkedAssets = {};
