@@ -578,7 +578,7 @@ var WebSocketClient = /*#__PURE__*/function () {
   return WebSocketClient;
 }();
 
-var startWebsocket = function startWebsocket(url, callback) {
+var startWebsocket = function startWebsocket(url) {
   var socketEvents = new _eventemitter.default();
   var sock = new WebSocketClient(socketEvents);
   sock.open(url);
@@ -590,7 +590,6 @@ var startWebsocket = function startWebsocket(url, callback) {
   sock.onopen = function () {
     if (window.WS_DEBUG) console.log("socket connected");
     socketEvents.on("send", send);
-    socketEvents.emit("onopen");
   };
 
   sock.onclose = function () {
@@ -604,30 +603,31 @@ var startWebsocket = function startWebsocket(url, callback) {
   function handleDataString(data) {
     var message = JSON.parse(data);
 
-    if (callback) {
-      callback(message);
-    } else {
-      if (message.type) {
-        switch (message.type) {
-          case "connect":
-            socketEvents.emit("connect", message.id);
-            break;
+    if (message.type) {
+      switch (message.type) {
+        case "onopen":
+          socketEvents.emit("onopen", message.id); //
 
-          case "disconnect":
-            socketEvents.emit("disconnect", message.id);
-            break;
+          break;
 
-          case "data":
-            if (window.WS_DEBUG) console.log("[p5.websocket] receiving data", message);
+        case "connect":
+          socketEvents.emit("connect", message.id);
+          break;
 
-            var _data2 = tryParse(message.data);
+        case "disconnect":
+          socketEvents.emit("disconnect", message.id);
+          break;
 
-            socketEvents.emit("data", _data2);
-            break;
-        }
-      } else {
-        socketEvents.emit("data", message);
+        case "data":
+          if (window.WS_DEBUG) console.log("[p5.websocket] receiving data", message);
+
+          var _data2 = tryParse(message.data);
+
+          socketEvents.emit("data", _data2, message.id);
+          break;
       }
+    } else {
+      socketEvents.emit("data", message, message.id);
     }
   }
 
@@ -682,9 +682,9 @@ p5.prototype.connectWebsocket = function (url) {
   // );
   // this client's connection
 
-  socket.on("onopen", function () {
+  socket.on("onopen", function (uid) {
     if (window.onConnection) {
-      onConnection();
+      onConnection(uid);
     }
   }); // this client's connection
 
@@ -704,9 +704,9 @@ p5.prototype.connectWebsocket = function (url) {
       disconnectReceived(message);
     }
   });
-  socket.on("data", function (message) {
+  socket.on("data", function (message, uid) {
     if (window.messageReceived) {
-      messageReceived(message);
+      messageReceived(message, uid);
     }
   });
 };
@@ -745,7 +745,7 @@ var parent = module.bundle.parent;
 if ((!parent || !parent.isParcelRequire) && typeof WebSocket !== 'undefined') {
   var hostname = "" || location.hostname;
   var protocol = location.protocol === 'https:' ? 'wss' : 'ws';
-  var ws = new WebSocket(protocol + '://' + hostname + ':' + "58650" + '/');
+  var ws = new WebSocket(protocol + '://' + hostname + ':' + "59210" + '/');
 
   ws.onmessage = function (event) {
     checkedAssets = {};

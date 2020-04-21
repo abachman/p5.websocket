@@ -11,6 +11,7 @@ const defaultOptions = {
   controller: true,
 };
 
+// naive query params serializer
 const serialize = (obj) => {
   return Object.keys(obj)
     .map((key) => encodeURIComponent(key) + "=" + encodeURIComponent(obj[key]))
@@ -23,18 +24,10 @@ p5.prototype.connectWebsocket = function (url, options = {}) {
 
   socket = startWebsocket(fullUrl);
 
-  // console.log("CONNECTING WEBSOCKET WITH LOCAL THIS", this);
-  // console.log(
-  //   "can see methods from sketch here",
-  //   this.hasOwnProperty("onConnection"),
-  //   this.onConnection,
-  //   window.onConnection
-  // );
-
   // this client's connection
-  socket.on("onopen", () => {
+  socket.on("onopen", (uid) => {
     if (window.onConnection) {
-      onConnection();
+      onConnection(uid);
     }
   });
 
@@ -58,9 +51,9 @@ p5.prototype.connectWebsocket = function (url, options = {}) {
     }
   });
 
-  socket.on("data", (message) => {
+  socket.on("data", (message, uid) => {
     if (window.messageReceived) {
-      messageReceived(message);
+      messageReceived(message, uid);
     }
   });
 };

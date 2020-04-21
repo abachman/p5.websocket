@@ -98,7 +98,7 @@ class WebSocketClient {
   }
 }
 
-export const startWebsocket = (url, callback) => {
+export const startWebsocket = (url) => {
   const socketEvents = new EventEmitter3();
   const sock = new WebSocketClient(socketEvents);
 
@@ -111,7 +111,6 @@ export const startWebsocket = (url, callback) => {
   sock.onopen = function () {
     if (window.WS_DEBUG) console.log("socket connected");
     socketEvents.on("send", send);
-    socketEvents.emit("onopen");
   };
 
   sock.onclose = function () {
@@ -124,27 +123,26 @@ export const startWebsocket = (url, callback) => {
   function handleDataString(data) {
     var message = JSON.parse(data);
 
-    if (callback) {
-      callback(message);
-    } else {
-      if (message.type) {
-        switch (message.type) {
-          case "connect":
-            socketEvents.emit("connect", message.id);
-            break;
-          case "disconnect":
-            socketEvents.emit("disconnect", message.id);
-            break;
-          case "data":
-            if (window.WS_DEBUG)
-              console.log("[p5.websocket] receiving data", message);
-            let data = tryParse(message.data);
-            socketEvents.emit("data", data);
-            break;
-        }
-      } else {
-        socketEvents.emit("data", message);
+    if (message.type) {
+      switch (message.type) {
+        case "onopen":
+          socketEvents.emit("onopen", message.id);
+          break;
+        case "connect":
+          socketEvents.emit("connect", message.id);
+          break;
+        case "disconnect":
+          socketEvents.emit("disconnect", message.id);
+          break;
+        case "data":
+          if (window.WS_DEBUG)
+            console.log("[p5.websocket] receiving data", message);
+          let data = tryParse(message.data);
+          socketEvents.emit("data", data, message.id);
+          break;
       }
+    } else {
+      socketEvents.emit("data", message, message.id);
     }
   }
 

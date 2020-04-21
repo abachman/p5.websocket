@@ -27,15 +27,17 @@ There's an example sketch at [`examples/sketch.js`](https://github.com/abachman/
 
 ### User Defined Functions
 
-`onConnection`
+NOTE: `uid` in the functions below is the unique ID assigned to a given connection by p5-websocket-server.
 
-`onDisconnection`
+`onConnection(uid)` when this sketch has finished connecting. The `uid` received is this sketch's own.
 
-`connectReceived(uid)`
+`onDisconnection` when this sketch has finished disconnecting. Usually only if the websocket server restarts or internet goes in-and-out.
 
-`disconnectReceived(uid)`
+`connectReceived(uid)` when another session connects.
 
-`messageReceived(data)`
+`disconnectReceived(uid)` when another session disconnects.
+
+`messageReceived(data, uid)` when a message is received from a session. If config includes `{ echo: true }` (the default) then the given sketch will receive its own messages.
 
 ## Hacking
 
