@@ -9,12 +9,21 @@
   "private": false,
   "scripts": {
     "dev": "parcel watch src/index.js -d example/ --out-file example/p5.websocket.js",
-    "build": "parcel build src/index.js -d dist/ --out-file dist/p5.websocket.min.js --no-source-maps"
+    "build": "parcel build src/index.js -d dist/ --out-file dist/p5.websocket.min.js --no-source-maps",
+    "lint": "eslint --fix",
+    "test": "jest"
   },
   "devDependencies": {
+    "babel-jest": "^26.0.1",
+    "eslint": "^7.1.0",
+    "eslint-config-prettier": "^6.11.0",
+    "jest": "^26.0.1",
     "parcel-bundler": "^1.12.4"
   },
   "dependencies": {
-    "eventemitter3": "^4.0.0"
+    "@babel/core": "^7.10.0",
+    "@babel/preset-env": "^7.10.0",
+    "eventemitter3": "^4.0.0",
+    "ws": "^7.3.0"
   }
 }
