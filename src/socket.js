@@ -1,3 +1,7 @@
+//
+// The internal WebSocket wrapping interface. You should never need to access
+// this directly from p5.js sketches.
+//
 import EventEmitter3 from "eventemitter3";
 
 function tryParse(jsonString) {
@@ -24,7 +28,7 @@ class WebSocketClient {
     this.url = url;
     this.instance = new WebSocket(this.url);
 
-    var self = this;
+    const self = this;
 
     this.instance.onopen = function () {
       if (window.WS_DEBUG) console.log("[WebSocketClient on open]");
@@ -82,7 +86,7 @@ class WebSocketClient {
       );
     this.removeAllListeners();
 
-    var self = this;
+    const self = this;
     setTimeout(function () {
       if (window.WS_DEBUG) console.log("WebSocketClient: reconnecting...");
       self.open(self.url);
@@ -94,6 +98,13 @@ class WebSocketClient {
       this.instance.send(message);
     } else {
       this.instance.send(JSON.stringify(message));
+    }
+  }
+
+  // detach event listeners and close the socket
+  close() {
+    if (this.instance.readyState !== WebSocket.CLOSED) {
+      this.instance.close();
     }
   }
 }
@@ -108,20 +119,35 @@ export const startWebsocket = (url) => {
     sock.send(message);
   }
 
+  function close() {
+    try {
+      sock.close();
+    } catch (ex) {
+      if (window.WS_DEBUG) {
+        console.error("close failed", ex.message);
+      }
+    }
+  }
+
+  socketEvents.on("close", close);
+
   sock.onopen = function () {
     if (window.WS_DEBUG) console.log("socket connected");
+
+    // external client-to-library API "methods"
     socketEvents.on("send", send);
   };
 
   sock.onclose = function () {
     if (window.WS_DEBUG) console.log("socket closed");
     socketEvents.removeListener("send", send);
+    socketEvents.removeListener("close", close);
     socketEvents.emit("onclose");
   };
   sock.onerror = sock.onclose;
 
   function handleDataString(data) {
-    var message = JSON.parse(data);
+    const message = JSON.parse(data);
 
     if (message.type) {
       switch (message.type) {
@@ -135,8 +161,10 @@ export const startWebsocket = (url) => {
           socketEvents.emit("disconnect", message.id);
           break;
         case "data":
-          if (window.WS_DEBUG)
+          if (window.WS_DEBUG) {
             console.log("[p5.websocket] receiving data", message);
+          }
+          // try parsing data in case it's double-wrapped JSON
           let data = tryParse(message.data);
           socketEvents.emit("data", data, message.id);
           break;
@@ -148,7 +176,7 @@ export const startWebsocket = (url) => {
 
   sock.onmessage = function (data) {
     if (data instanceof Blob) {
-      var reader = new FileReader();
+      const reader = new FileReader();
       reader.onload = function () {
         handleDataString(reader.result);
       };
