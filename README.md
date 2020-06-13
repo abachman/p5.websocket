@@ -1,6 +1,10 @@
 A (moderately) simple p5.js library for connecting to websocket servers like the one at https://p5-websocket.glitch.me/.
 
-Download dist/p5.websocket.min.js and add it to your sketch's index.html:
+## Using p5.websocket
+
+There's an example sketch at [`examples/sketch.js`](https://github.com/abachman/p5.websocket/blob/master/example/sketch.js)
+
+First, download dist/p5.websocket.min.js and add it to your sketch's index.html file or use a CDN (content delivery network) to get the code straight from GitHub:
 
 ```html
 <!DOCTYPE html>
@@ -15,9 +19,38 @@ Download dist/p5.websocket.min.js and add it to your sketch's index.html:
 </html>
 ```
 
-## Using p5.websocket
+A simple sketch that communicates with other sketches must include at least three things, a single call to `connectWebsocket` in the sketch setup, a user defined function `messageReceived`, and calls to `sendMessage` wherever you want your sketch to send data.
 
-There's an example sketch at [`examples/sketch.js`](https://github.com/abachman/p5.websocket/blob/master/example/sketch.js)
+```js
+let myColor = [100, 100, 100];
+
+function setup() {
+  createCanvas(200, 200);
+  noStroke();
+  // connect to the chat.reasonable.systems p5 websocket server on the channel
+  // named "p5.websocket-example". Every sketch on the same channel will get
+  // messages from this sketch.
+  connectWebsocket("wss://chat.reasonable.systems/p5.websocket-example");
+}
+
+function draw() {
+  background(255);
+  fill(myColor);
+  ellipse(width / 2, height / 2, width);
+}
+
+function mousePressed() {
+  // send a message on the connected channel
+  sendMessage({ color: [random(255), random(255), random(255)] });
+}
+
+// receive a message on the connected channel
+function messageReceived(data) {
+  myColor = data.color;
+}
+```
+
+You can [play with a copy of this sketch here](https://editor.p5js.org/abachman-mica/sketches/nV1BOJomZ).
 
 ### Library Functions
 
@@ -39,13 +72,13 @@ NOTE: `uid` in the functions below is the unique ID assigned to a given connecti
 
 `messageReceived(data, uid)` when a message is received from a session. If config includes `{ echo: true }` (the default) then the given sketch will receive its own messages.
 
-## Hacking
+## Contributing
 
 Clone this repository and run `yarn install`.
 
 Then run `yarn dev`.
 
-serve `example-dist/` as static
+Serve `example-dist/` as static.
 
 ## Other Stuff
 
