@@ -1,6 +1,6 @@
 {
   "name": "p5.websocket",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "description": "A tiny p5.js websocket library.",
   "main": "index.js",
   "repository": "https://github.com/abachman/p5.websocket.git",

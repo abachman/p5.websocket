@@ -1,3 +1,8 @@
+## 1.1.2
+
+- add `close` message to socket lib to allow forcefully closing connections
+- small, functionality-preserving changes to support testing
+
 ## 1.1.1
 
 - server added second "onopen" notification when p5.websocket clients connect
