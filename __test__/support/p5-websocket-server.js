@@ -1,10 +1,14 @@
-// start a fake, p5.websocket compliant server
-import WebSocket from "ws";
+// start a p5.websocket compliant server
+import WebSocket from "ws"; // @8.13.0
+import Debug from "debug"
+
+const debug = Debug('p5.websocket:server')
 
 export const startServer = () => {
   const port = 18888 + Math.floor(Math.random() * 10000);
 
   const server = new WebSocket.Server({
+    perMessageDeflate: false,
     port: port,
   });
 
@@ -21,23 +25,18 @@ export const startServer = () => {
   server.on("connection", (ws) => {
     connections.push(ws);
 
-    // console.log("[server] connection opened");
+    debug("[server] connection opened");
     ws.send(JSON.stringify({ type: "onopen", id: "123" }));
 
-    ws.on("message", (data) => {
-      send(JSON.stringify({ type: "data", id: "123", data: data }));
+    ws.on("message", (data) => { // data : Buffer
+      const dstr = data.toString('utf8');
+      debug("[server] message received", dstr);
+      send(JSON.stringify({ type: "data", id: "123", data: dstr }));
     });
 
     ws.on("close", function () {
-      // console.log("[server] connection closed");
+      debug("[server] connection closed");
       send(JSON.stringify({ type: "disconnect", id: "124" }));
-      // connections.forEach((conn) => {
-      //   try {
-      //     conn.send(JSON.stringify({ type: "disconnect", id: "124" }));
-      //   } catch (ex) {
-      //     console.log("got error in send", ex);
-      //   }
-      // });
     });
   });
 

@@ -1,6 +1,8 @@
 A (moderately) simple p5.js library for connecting to websocket servers like the one at https://p5-websocket.glitch.me/.
 
-## Using p5.websocket
+The intention of this library is to make sketch-to-sketch communication as simple as possible. It was originally built for teaching, so we've tried to hide as much of the complexity of browser-based networking as possible.
+
+## Using p5.websocket in a p5.js sketch
 
 There's an example sketch at [`examples/sketch.js`](https://github.com/abachman/p5.websocket/blob/master/example/sketch.js)
 
@@ -27,9 +29,10 @@ let myColor = [100, 100, 100];
 function setup() {
   createCanvas(200, 200);
   noStroke();
-  // connect to the chat.reasonable.systems p5 websocket server on the channel
-  // named "p5.websocket-example". Every sketch on the same channel will get
-  // messages from this sketch.
+
+  // **1** Connect to the chat.reasonable.systems p5 websocket server on the
+  // channel named "p5.websocket-example". Every sketch on the same channel
+  // will receive messages from this sketch in its `messageReceived` function.
   connectWebsocket("wss://chat.reasonable.systems/p5.websocket-example");
 }
 
@@ -40,11 +43,11 @@ function draw() {
 }
 
 function mousePressed() {
-  // send a message on the connected channel
+  // **2** Send a message on the connected channel.
   sendMessage({ color: [random(255), random(255), random(255)] });
 }
 
-// receive a message on the connected channel
+// **3** Receive a message on the connected channel.
 function messageReceived(data) {
   myColor = data.color;
 }
@@ -72,13 +75,35 @@ NOTE: `uid` in the functions below is the unique ID assigned to a given connecti
 
 `messageReceived(data, uid)` when a message is received from a session. If config includes `{ echo: true }` (the default) then the given sketch will receive its own messages.
 
-## Contributing
+## Hacking on this library
 
-Clone this repository and run `yarn install`.
+1. Clone this repository and run `npm install`.
+2. Run `npm run dev`.
+3. In another terminal, serve `example/` as a static site.
 
-Then run `yarn dev`.
+```sh
+$ npm install
+$ npm run dev
 
-Serve `example-dist/` as static.
+> p5.websocket@1.1.3 dev
+> parcel watch src/index.js -d example/ --out-file example/p5.websocket.js
+
+✨  Built in 2.83s.
+
+# in another terminal
+$ npm run serve
+
+   ┌──────────────────────────────────────────┐
+   │                                          │
+   │   Serving!                               │
+   │                                          │
+   │   - Local:    http://localhost:3000      │
+   │   - Network:  http://192.168.1.19:3000   │
+   │                                          │
+   │   Copied local address to clipboard!     │
+   │                                          │
+   └──────────────────────────────────────────┘
+```
 
 ## Other Stuff
 
