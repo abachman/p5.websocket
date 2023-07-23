@@ -1,7 +1,7 @@
 // TODO: test socket lifecycle
 
 import { startWebsocket } from "../src/socket";
-import { startServer } from "./fakeP5WebsocketServer";
+import { startServer } from "./support/p5-websocket-server";
 
 describe("startWebsocket client", () => {
   let wsServer;
@@ -43,7 +43,7 @@ describe("startWebsocket client", () => {
     });
   });
 
-  it("emits data event when data is sent", (done) => {
+  it("emits data event when plain string data is sent", (done) => {
     client = startWebsocket(`ws://localhost:${port}`);
 
     client.on("onopen", (id) => {
@@ -57,6 +57,23 @@ describe("startWebsocket client", () => {
       expect(id).toBeDefined();
       expect(id).toEqual("123");
       expect(data).toBe("hello world");
+      done();
+    });
+  });
+
+  it("emits data event when JSON.stringify data is sent", (done) => {
+    client = startWebsocket(`ws://localhost:${port}`);
+
+    client.on("onopen", (id) => {
+      expect(id).toBeDefined();
+      expect(id).toEqual("123");
+      client.emit("send", JSON.stringify({ hello: "world" }));
+    });
+
+    client.on("data", (data, id) => {
+      expect(id).toBeDefined();
+      expect(id).toEqual("123");
+      expect(data).toStrictEqual({ hello: "world" });
       done();
     });
   });
@@ -75,7 +92,7 @@ describe("startWebsocket client", () => {
     it("emits disconnect event when another client disconnects", (done) => {
       client = startWebsocket(`ws://localhost:${port}`);
 
-      client.on("onopen", (evt) => {
+      client.on("onopen", (_evt) => {
         otherClient.emit("close");
       });
 
@@ -89,12 +106,11 @@ describe("startWebsocket client", () => {
     it("receives messages from other clients", (done) => {
       client = startWebsocket(`ws://localhost:${port}`);
 
-      client.on("onopen", (evt) => {
+      client.on("onopen", (_evt) => {
         otherClient.emit("send", JSON.stringify({ type: "data", data: "abc" }));
       });
 
       client.on("data", (data, id) => {
-        // data received from other client
         expect(data).toBeDefined();
         expect(data).toEqual({ type: "data", data: "abc" });
         expect(id).toBeDefined();

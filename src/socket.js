@@ -3,18 +3,18 @@
 // this directly from p5.js sketches.
 //
 import EventEmitter3 from "eventemitter3";
+import Debug from "debug";
+
+const debug = Debug('p5.websocket:socket');
 
 function tryParse(jsonString) {
+  debug('try parsing', jsonString);
   try {
     const data = JSON.parse(jsonString);
     return data;
   } catch (ex) {
-    if (window.WS_DEBUG) {
-      console.error(
-        "[p5.websocket error] failed to parse data blob as JSON:",
-        data
-      );
-    }
+    // expect that messages may be plain strings
+    debug("failed to parse as JSON:", jsonString);
     return jsonString;
   }
 }
@@ -31,15 +31,15 @@ class WebSocketClient {
     const self = this;
 
     this.instance.onopen = function () {
-      if (window.WS_DEBUG) console.log("[WebSocketClient on open]");
+      debug("[WebSocketClient on open]");
       self.onopen();
     };
 
     this.instance.onclose = function (evt) {
-      if (window.WS_DEBUG) console.log("[WebSocketClient on close]");
+      debug("[WebSocketClient on close]");
       switch (evt.code) {
         case 1000: // CLOSE_NORMAL
-          if (window.WS_DEBUG) console.log("WebSocketClient: closed");
+          debug("WebSocketClient: closed");
           break;
         default:
           // Abnormal closure
@@ -50,7 +50,7 @@ class WebSocketClient {
     };
 
     this.instance.onerror = function (evt) {
-      if (window.WS_DEBUG) console.log("[WebSocketClient on error]");
+      debug("[WebSocketClient on error]");
       switch (evt.code) {
         case "ECONNREFUSED":
           self.reconnect(evt);
@@ -62,11 +62,11 @@ class WebSocketClient {
     };
 
     this.instance.onmessage = function (evt) {
-      if (window.WS_DEBUG) console.log("[WebSocketClient on message]");
+      debug("[WebSocketClient on message]");
       self.onmessage(evt.data);
     };
 
-    if (window.WS_DEBUG) console.log("[WebSocketClient open] completed");
+    debug("[WebSocketClient open] completed");
   }
 
   removeAllListeners() {
@@ -76,19 +76,18 @@ class WebSocketClient {
     this.instance.onmessage = null;
   }
 
-  reconnect() {
-    if (window.WS_DEBUG)
-      console.log(
-        "WebSocketClient: retry in",
-        this.reconnect_interval,
-        "ms",
-        evt
-      );
+  reconnect(evt) {
+    debug(
+      "WebSocketClient: retry in",
+      this.reconnect_interval,
+      "ms",
+      evt
+    );
     this.removeAllListeners();
 
     const self = this;
     setTimeout(function () {
-      if (window.WS_DEBUG) console.log("WebSocketClient: reconnecting...");
+      debug("WebSocketClient: reconnecting...");
       self.open(self.url);
     }, this.reconnect_interval);
   }
@@ -123,23 +122,21 @@ export const startWebsocket = (url) => {
     try {
       sock.close();
     } catch (ex) {
-      if (window.WS_DEBUG) {
-        console.error("close failed", ex.message);
-      }
+      console.error("close failed", ex.message);
     }
   }
 
   socketEvents.on("close", close);
 
   sock.onopen = function () {
-    if (window.WS_DEBUG) console.log("socket connected");
+    debug("socket connected");
 
     // external client-to-library API "methods"
     socketEvents.on("send", send);
   };
 
   sock.onclose = function () {
-    if (window.WS_DEBUG) console.log("socket closed");
+    debug("socket closed");
     socketEvents.removeListener("send", send);
     socketEvents.removeListener("close", close);
     socketEvents.emit("onclose");
@@ -161,9 +158,7 @@ export const startWebsocket = (url) => {
           socketEvents.emit("disconnect", message.id);
           break;
         case "data":
-          if (window.WS_DEBUG) {
-            console.log("[p5.websocket] receiving data", message);
-          }
+          debug("receiving data", message);
           // try parsing data in case it's double-wrapped JSON
           let data = tryParse(message.data);
           socketEvents.emit("data", data, message.id);
@@ -175,13 +170,15 @@ export const startWebsocket = (url) => {
   }
 
   sock.onmessage = function (data) {
-    if (data instanceof Blob) {
+    if (data instanceof Blob || data instanceof Buffer) {
+      debug('message data is Blob || Buffer');
       const reader = new FileReader();
       reader.onload = function () {
         handleDataString(reader.result);
       };
       reader.readAsText(data);
     } else if (typeof data == "string") {
+      debug('message data is string');
       handleDataString(data);
     }
   };
