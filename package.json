@@ -16,7 +16,7 @@
     "development": {}
   },
   "scripts": {
-    "dev": "parcel watch --target development --no-optimization",
+    "dev": "parcel watch --target development",
     "build": "parcel build --target main",
     "lint": "eslint --fix",
     "test": "jest",
