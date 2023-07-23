@@ -6,7 +6,6 @@
   "author": "Adam Bachman",
   "license": "MIT",
   "private": false,
-
   "//1": "parcel 2 configuration",
   "browserslist": "> 0.5%, last 2 versions, not dead",
   "source": "src/index.js",
@@ -24,6 +23,8 @@
     "serve": "npx serve example/"
   },
   "devDependencies": {
+    "@babel/preset-env": "^7.22.9",
+    "babel-jest": "^29.6.1",
     "eslint": "^7.1.0",
     "eslint-config-prettier": "^6.11.0",
     "jest": "^26.0.1",
