@@ -28,7 +28,7 @@
     "eslint": "^7.1.0",
     "eslint-config-prettier": "^6.11.0",
     "jest": "^26.0.1",
-    "ws": "^8.13.0"
+    "ws": "^8.17.1"
   },
   "dependencies": {
     "@swc/helpers": "^0.5.1",
